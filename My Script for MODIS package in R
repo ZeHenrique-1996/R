@@ -1,0 +1,73 @@
+Estou tentando usar o pacote MODIS para obtenção e processamento de dados dos índices NDVI e EVI. Consegui baixar os dados no meu computador, mas não estou conseguindo analisa-los. Sempre aparece um erro quando tento calcular a média e desvio padrão desses índices para dez localidades em um determinado período de tempo. Esse é o meu SCRIPT:
+
+library(devtools)
+library(sp)
+library(raster)
+library(rgeos)
+library(maps)
+library(MODIStsp)
+library(mapedit)
+library(leaflet)
+library(rgdal)
+setwd("C:/Users/magui/Desktop/Doc_Dambientais")
+library(remotes)
+#########Indice MOD13A2 (1km): ###############
+MODIStsp_get_prodlayers("M*D13A3") #See name and available layers for product M*D13A3
+MODIStsp(
+  gui             = FALSE, 
+  out_folder      = "C:/Users/magui/Desktop/Doc_Dambientais", 
+  selprod         = "Vegetation_Indexes_Monthly_1Km (M*D13A3)",
+  bandsel         = c("EVI", "NDVI"), 
+  quality_bandsel = c("QA_qual","QA_usef","QA_mix_cld","QA_shd"), 
+  indexes_bandsel = "SR", 
+  user            = "andradelima13" ,
+  password        = "Anphibian13",
+  start_date      = "2000.09.27", 
+  end_date        = "2022.09.27", 
+  verbose         = FALSE,
+  parallel        = FALSE
+)
+out_fold <- file.path("C:/Users/magui/Desktop/Doc_Dambientais/VI_Monthly_1Km_v6") 
+list.files(out_fold)
+list.files(file.path(out_fold ,"EVI" ))
+list.files(file.path(out_fold ,"NDVI" ))
+list.files(file.path(out_fold ,"QA_qual"))
+list.files(file.path(out_fold ,"QA_usef"))
+list.files(file.path(out_fold ,"QA_mix_cld"))
+list.files(file.path(out_fold ,"QA_shd"))
+list.files(file.path(out_fold ,"SR"))
+##########Acessar uma serie de dados (rasterStack)##########
+in_virtual_file <- "C:/Users/magui/Desktop/Doc_Dambientais/VI_Monthly_1Km_v6/Time_Series/RData/Terra/EVI/MOD13A3_EVI_275_2000_213_2022_RData.RData" 
+indata          <- get(load(in_virtual_file))
+#extraindo dados de EVI da serie de dados em locais específicos (arquivo shapefile de pontos)
+infile    <- file.path("C:/Users/magui/Desktop/Doc_Dambientais/VI_Monthly_1Km_v6/Time_Series/RData/Terra/EVI/MOD13A3_EVI_275_2000_213_2022_RData.RData")  
+inrts     <- get(load(infile)) #carregar o RasterStack (serie de dados)
+inrts
+shpname   <- shapefile("C:/Users/magui/Desktop/Doc_Dambientais/Para_criar_shapefile_localidades/localidades.shp")  #caminho de entrada para arquivo shapefile
+startdate <- as.Date("2001-09-27")  #data inicial
+enddate   <- as.Date("2005-09-27") #data final
+#########calcular media e desvio padrao para EVI#########
+dataavg   <- MODIStsp_extract(inrts, shpname, startdate, enddate, FUN = 'mean',na.rm = F)
+datasd    <- MODIStsp_extract (inrts, shpname, startdate, enddate, FUN = 'sd', na.rm = T)
+
+
+nessa última parte (dataavg e dataasd) ocorre um erro:
+
+Error in [<-(*tmp*, f, 1:ncols, value = rDT[, lapply(.SD, match.fun(FUN),  : 
+  subscript out of bounds
+In addition: Warning messages:
+1: attribute variables are assumed to be spatially constant throughout all geometries 
+2: In MODIStsp_extract(inrts, shpname, startdate, enddate, FUN = "mean",  :
+  Some features of the spatial object are outside or partially outside
+ the extent of the input RasterStack ! Output for features outside RasterStack extent
+ will be set to NA. Outputs for features only partially inside will be retrieved
+ using only the available pixels !
+3: In CPL_write_ogr(obj, dsn, layer, driver, as.character(dataset_options),  :
+  GDAL Error 1: C:\Users\magui\AppData\Local\Temp\Rtmp4GQpZx\file33b8324f15b9.shp does not appear to be a file or directory.
+4: In max(shape$mdxtnq) : no non-missing arguments to max; returning -Inf
+
+
+Já pesquisei sobre, mas não achei nada muito explicativo.
+Algo que tenho me questionado é: será que por ser um shapefile de pontos (e não de polígono) tá causando o erro?
+
+Sou um iniciante no R. Então qualquer ajuda é super bem vinda!
